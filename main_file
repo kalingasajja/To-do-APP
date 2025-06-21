@@ -1,0 +1,333 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus, Check, X, GripVertical, Edit2, Save, XCircle } from 'lucide-react';
+
+export default function TodoApp() {
+  // Motivational quotes collection
+  const motivationalQuotes = [
+    "Great job! Every small step counts towards your bigger goals. 🌟",
+    "You're making amazing progress! Keep up the fantastic work! 💪",
+    "Another task conquered! You're unstoppable today! 🚀",
+    "Well done! Success is the sum of small efforts repeated daily. ✨",
+    "Fantastic! You're building momentum one task at a time! 🎯",
+    "Excellent work! Progress, not perfection, is the goal. 🌈",
+    "Outstanding! Every completed task is a victory worth celebrating! 🎉",
+    "Brilliant! You're turning your to-do list into a 'ta-da' list! ⭐",
+    "Amazing! Small wins lead to big achievements! 🏆",
+    "Superb! You're creating the life you want, one task at a time! 🌸",
+    "Wonderful! Consistency is the mother of mastery! 💎",
+    "Terrific! You're proof that dedication pays off! 🔥",
+    "Impressive! Every task completed is a promise kept to yourself! 🤝",
+    "Marvelous! You're building habits that will transform your life! 🦋",
+    "Phenomenal! Success is a series of small wins! 🎊"
+  ];
+
+  const [tasks, setTasks] = useState([
+    { id: 1, text: "Welcome to your new to-do app!", completed: false },
+    { id: 2, text: "Try adding a new task below", completed: false },
+    { id: 3, text: "Drag tasks to reorder them", completed: true }
+  ]);
+  const [newTask, setNewTask] = useState('');
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [dragOverItem, setDragOverItem] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [showQuote, setShowQuote] = useState(false);
+  const [currentQuote, setCurrentQuote] = useState('');
+  const inputRef = useRef(null);
+  const editInputRef = useRef(null);
+
+  const addTask = () => {
+    if (newTask.trim()) {
+      setTasks([...tasks, {
+        id: Date.now(),
+        text: newTask.trim(),
+        completed: false
+      }]);
+      setNewTask('');
+      inputRef.current?.focus();
+    }
+  };
+
+  const toggleTask = (id) => {
+    const task = tasks.find(t => t.id === id);
+    if (task && !task.completed) {
+      // Show motivational quote when completing a task
+      const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+      setCurrentQuote(randomQuote);
+      setShowQuote(true);
+      
+      // Hide quote after 4 seconds
+      setTimeout(() => {
+        setShowQuote(false);
+      }, 4000);
+    }
+    
+    setTasks(tasks.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
+  };
+
+  const deleteTask = (id) => {
+    setTasks(tasks.filter(task => task.id !== id));
+  };
+
+  const startEditing = (task) => {
+    setEditingTask(task.id);
+    setEditText(task.text);
+    setTimeout(() => {
+      editInputRef.current?.focus();
+      editInputRef.current?.select();
+    }, 0);
+  };
+
+  const saveEdit = () => {
+    if (editText.trim()) {
+      setTasks(tasks.map(task => 
+        task.id === editingTask ? { ...task, text: editText.trim() } : task
+      ));
+    }
+    setEditingTask(null);
+    setEditText('');
+  };
+
+  const cancelEdit = () => {
+    setEditingTask(null);
+    setEditText('');
+  };
+
+  const handleEditKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      cancelEdit();
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      addTask();
+    }
+  };
+
+  const handleDragStart = (e, index) => {
+    setDraggedItem(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    setDragOverItem(index);
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    
+    if (draggedItem === null) return;
+    
+    const draggedTask = tasks[draggedItem];
+    const newTasks = [...tasks];
+    
+    // Remove dragged item
+    newTasks.splice(draggedItem, 1);
+    
+    // Insert at new position
+    const insertIndex = draggedItem < dropIndex ? dropIndex - 1 : dropIndex;
+    newTasks.splice(insertIndex, 0, draggedTask);
+    
+    setTasks(newTasks);
+    setDraggedItem(null);
+    setDragOverItem(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverItem(null);
+  };
+
+  const completedCount = tasks.filter(task => task.completed).length;
+  const totalCount = tasks.length;
+  const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Motivational Quote Popup */}
+        {showQuote && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-8 max-w-md mx-auto text-center shadow-2xl transform animate-pulse">
+              <div className="text-6xl mb-4">🎉</div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Task Completed!</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">{currentQuote}</p>
+              <button
+                onClick={() => setShowQuote(false)}
+                className="mt-6 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+              >
+                Keep Going!
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">My Tasks</h1>
+          <p className="text-gray-600">Stay organized and productive</p>
+        </div>
+
+        {/* Progress Section */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-700">Progress</h2>
+            <span className="text-sm text-gray-500">
+              {completedCount} of {totalCount} completed
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+          <div className="text-center mt-2 text-sm font-medium text-green-600">
+            {Math.round(progressPercentage)}% Complete
+          </div>
+        </div>
+
+        {/* Add Task Section */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="flex gap-3">
+            <input
+              ref={inputRef}
+              type="text"
+              value={newTask}
+              onChange={(e) => setNewTask(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="What needs to be done?"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              autoFocus
+            />
+            <button
+              onClick={addTask}
+              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-200 flex items-center gap-2 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+            >
+              <Plus size={20} />
+              Add
+            </button>
+          </div>
+        </div>
+
+        {/* Tasks List */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          {tasks.length === 0 ? (
+            <div className="p-12 text-center text-gray-500">
+              <div className="text-6xl mb-4">✨</div>
+              <h3 className="text-lg font-medium mb-2">All caught up!</h3>
+              <p>No tasks yet. Add one above to get started.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {tasks.map((task, index) => (
+                <div
+                  key={task.id}
+                  draggable={editingTask !== task.id}
+                  onDragStart={(e) => editingTask !== task.id && handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`p-4 flex items-center gap-4 hover:bg-gray-50 transition-all duration-200 group ${
+                    editingTask === task.id ? 'bg-blue-50' : 'cursor-move'
+                  } ${
+                    draggedItem === index ? 'opacity-50' : ''
+                  } ${
+                    dragOverItem === index ? 'bg-blue-50 border-blue-200' : ''
+                  }`}
+                >
+                  {/* Drag Handle */}
+                  <div className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+                    <GripVertical size={20} />
+                  </div>
+
+                  {/* Task Content */}
+                  <div className="flex-1 flex items-center gap-3">
+                    <button
+                      onClick={() => toggleTask(task.id)}
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                        task.completed
+                          ? 'bg-green-500 border-green-500 text-white scale-110'
+                          : 'border-gray-300 hover:border-green-400 hover:bg-green-50'
+                      }`}
+                    >
+                      {task.completed && <Check size={14} />}
+                    </button>
+                    
+                    {editingTask === task.id ? (
+                      <div className="flex-1 flex items-center gap-2">
+                        <input
+                          ref={editInputRef}
+                          type="text"
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          onKeyDown={handleEditKeyPress}
+                          className="flex-1 px-3 py-1 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50"
+                        />
+                        <button
+                          onClick={saveEdit}
+                          className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors duration-200"
+                          title="Save (Enter)"
+                        >
+                          <Save size={16} />
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                          title="Cancel (Esc)"
+                        >
+                          <XCircle size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span
+                        className={`flex-1 transition-all duration-300 ${
+                          task.completed
+                            ? 'text-gray-500 line-through'
+                            : 'text-gray-800'
+                        }`}
+                      >
+                        {task.text}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  {editingTask !== task.id && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        onClick={() => startEditing(task)}
+                        className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                        title="Edit task"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteTask(task.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
+                        title="Delete task"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-8 text-gray-500 text-sm">
+          <p>Drag tasks to reorder • Click circles to complete • Double-click to edit • Press Enter to add quickly</p>
+        </div>
+      </div>
+    </div>
+  );
+}
